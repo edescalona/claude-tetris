@@ -344,8 +344,9 @@ function init() {
 document.addEventListener('keydown', e => {
   if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
   // While the pause menu is open every game key is swallowed, so the page cannot
-  // scroll and a focused menu button cannot be activated with Space.
-  if (paused && GAME_KEYS.includes(e.code)) e.preventDefault();
+  // scroll and a focused menu button cannot be activated with Space. The level
+  // selector is exempt or it would become mouse-only.
+  if (paused && GAME_KEYS.includes(e.code) && e.target !== pauseLevelSelect) e.preventDefault();
   if (paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
