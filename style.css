@@ -243,3 +243,131 @@ kbd {
 #restart-btn:hover {
   background: var(--restart-hover);
 }
+
+/* ---- Menú de pausa ---- */
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.pause-hidden {
+  display: none;
+}
+
+.pause-menu {
+  width: 240px;
+  max-width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--board-border);
+  border-radius: 8px;
+  background: var(--board-bg);
+  box-shadow: 0 10px 40px var(--board-shadow);
+}
+
+.pause-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: var(--value-color);
+  margin-bottom: 4px;
+}
+
+.pause-btn {
+  width: 100%;
+  border: 1px solid var(--switch-bg);
+  border-radius: 6px;
+  padding: 9px 14px;
+  background: var(--board-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.pause-btn:hover {
+  background: var(--switch-hover-bg);
+  border-color: var(--value-color);
+}
+
+.pause-btn-primary {
+  background: var(--restart-bg);
+  border-color: var(--restart-bg);
+  color: var(--restart-color);
+}
+
+.pause-btn-primary:hover {
+  background: var(--restart-hover);
+  border-color: var(--restart-hover);
+  color: var(--restart-color);
+}
+
+.pause-btn:focus-visible,
+.pause-select:focus-visible {
+  outline: 2px solid var(--value-color);
+  outline-offset: 2px;
+}
+
+.pause-controls ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--board-border);
+  border-radius: 6px;
+}
+
+.pause-controls li {
+  font-size: 12px;
+  color: var(--controls-color);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pause-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.pause-field-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--label-color);
+  font-weight: 600;
+}
+
+.pause-select {
+  width: 100%;
+  border: 1px solid var(--kbd-border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: var(--kbd-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pause-note {
+  font-size: 11px;
+  color: var(--controls-color);
+  text-align: center;
+}
