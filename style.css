@@ -25,7 +25,7 @@
   --restart-color: #0f0f17;
   --restart-hover: #9bbdff;
   --switch-bg: #3a3a5a;
-  --switch-knob: #e0e0e0;
+  --switch-hover-bg: #2a2a3a;
 }
 
 body.light-theme {
@@ -49,7 +49,7 @@ body.light-theme {
   --restart-color: #ffffff;
   --restart-hover: #5c78e0;
   --switch-bg: #c3c6da;
-  --switch-knob: #ffffff;
+  --switch-hover-bg: #e9ebf5;
 }
 
 body {
@@ -74,42 +74,32 @@ body {
   right: 0;
 }
 
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 42px;
-  height: 24px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.switch .slider {
-  position: absolute;
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--switch-bg);
+  background: var(--board-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
   cursor: pointer;
-  inset: 0;
-  background: var(--switch-bg);
-  border-radius: 24px;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
-.switch .slider::before {
-  content: '';
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  left: 3px;
-  top: 3px;
-  background: var(--switch-knob);
-  border-radius: 50%;
-  transition: transform 0.2s, background 0.2s;
+.theme-btn:hover {
+  background: var(--switch-hover-bg);
+  border-color: var(--value-color);
 }
 
-.switch input:checked + .slider::before {
-  transform: translateX(18px);
+.theme-btn .theme-icon {
+  display: inline-flex;
+  line-height: 0;
+  color: var(--value-color);
 }
 
 .game-title {
