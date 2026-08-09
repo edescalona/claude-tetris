@@ -214,20 +214,15 @@ function updateHUD() {
   levelEl.textContent = level;
 }
 
+// Every block on every canvas goes through here; the active skin owns the painting.
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = COLORS[colorIndex];
-  context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
-  context.globalAlpha = 1;
+  (SKINS[activeSkin] || SKINS[DEFAULT_SKIN]).drawBlock(context, x, y, colorIndex, size, alpha);
 }
 
 function drawGrid() {
-  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid-color').trim();
+  // Read from body: skin classes live there, alongside the theme class.
+  ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--grid-color').trim();
   ctx.lineWidth = 0.5;
   for (let c = 1; c < COLS; c++) {
     ctx.beginPath();
@@ -367,5 +362,217 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 
+/* ------------------------------------------------------------------ *
+ * Visual skins
+ *
+ * A skin is { label, colors, drawBlock }. `colors` is index-aligned with
+ * COLORS / PIECES (index 0 is the null placeholder, 1..7 tetrominoes,
+ * 8..12 specials). `drawBlock` has the same signature as the top-level
+ * drawBlock, which dispatches to the active skin.
+ * ------------------------------------------------------------------ */
+
+const SKIN_KEY = 'tetris-skin';
+const DEFAULT_SKIN = 'retro';
+
+const skinSelector = document.getElementById('skin-selector');
+const skinButtons = skinSelector ? Array.from(skinSelector.querySelectorAll('.skin-option')) : [];
+
+let activeSkin = DEFAULT_SKIN;
+
+// Traces a rounded rect path; falls back to quadratic corners where roundRect is missing.
+function skinRoundRectPath(context, px, py, w, h, r) {
+  const rad = Math.min(r, w / 2, h / 2);
+  context.beginPath();
+  if (typeof context.roundRect === 'function') {
+    context.roundRect(px, py, w, h, rad);
+    return;
+  }
+  context.moveTo(px + rad, py);
+  context.lineTo(px + w - rad, py);
+  context.quadraticCurveTo(px + w, py, px + w, py + rad);
+  context.lineTo(px + w, py + h - rad);
+  context.quadraticCurveTo(px + w, py + h, px + w - rad, py + h);
+  context.lineTo(px + rad, py + h);
+  context.quadraticCurveTo(px, py + h, px, py + h - rad);
+  context.lineTo(px, py + rad);
+  context.quadraticCurveTo(px, py, px + rad, py);
+  context.closePath();
+}
+
+// Texture cells on a 6x6 sub-grid, as [col, row].
+const SKIN_PIXEL_LIGHT = [[0,0],[1,0],[2,0],[3,0],[4,0],[0,1],[0,2],[0,3],[0,4],[2,2],[3,1]];
+const SKIN_PIXEL_DARK = [[5,1],[5,2],[5,3],[5,4],[5,5],[1,5],[2,5],[3,5],[4,5],[3,3],[2,4]];
+
+const SKINS = {
+  retro: {
+    label: 'Retro',
+    colors: COLORS,
+    drawBlock(context, x, y, colorIndex, size, alpha) {
+      context.globalAlpha = alpha ?? 1;
+      context.fillStyle = COLORS[colorIndex];
+      context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+      // highlight
+      context.fillStyle = 'rgba(255,255,255,0.12)';
+      context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+      context.globalAlpha = 1;
+    },
+  },
+  neon: {
+    label: 'Neón',
+    colors: [
+      null,
+      '#00fff7', // I
+      '#ffe600', // O
+      '#d400ff', // T
+      '#00ff6a', // S
+      '#ff0044', // Z
+      '#00a2ff', // J
+      '#ff8c00', // L
+      '#ff00a0', // +
+      '#00ffc8', // U
+      '#7a5cff', // Y
+      '#ffffff', // single
+      '#ff5e00', // hollow 3x3
+    ],
+    drawBlock(context, x, y, colorIndex, size, alpha) {
+      const color = SKINS.neon.colors[colorIndex];
+      const px = x * size + 2;
+      const py = y * size + 2;
+      const s = size - 4;
+      const inset = Math.max(2, Math.round(size * 0.12));
+      context.globalAlpha = alpha ?? 1;
+      context.shadowColor = color;
+      context.shadowBlur = size * 0.45;
+      context.fillStyle = color;
+      context.fillRect(px, py, s, s);
+      // Shadow state is global: leaving it on would smear the grid and every later draw.
+      context.shadowBlur = 0;
+      context.shadowColor = 'transparent';
+      // Dark core leaves a bright rim, so the glow reads as a tube outline.
+      context.fillStyle = 'rgba(4, 4, 12, 0.8)';
+      context.fillRect(px + inset, py + inset, s - inset * 2, s - inset * 2);
+      context.globalAlpha = 1;
+    },
+  },
+  pastel: {
+    label: 'Pastel',
+    colors: [
+      null,
+      '#a8e0dd', // I
+      '#ffe9ac', // O
+      '#d8c2ef', // T
+      '#bfe3c8', // S
+      '#f3b9b9', // Z
+      '#c3d7f4', // J
+      '#ffd5ab', // L
+      '#f5c2da', // +
+      '#aedcd2', // U
+      '#c5c8ee', // Y
+      '#ded7f0', // single
+      '#dcc9bd', // hollow 3x3
+    ],
+    drawBlock(context, x, y, colorIndex, size, alpha) {
+      const color = SKINS.pastel.colors[colorIndex];
+      const px = x * size + 2;
+      const py = y * size + 2;
+      const s = size - 4;
+      const radius = Math.max(2, Math.round(size * 0.3));
+      context.globalAlpha = alpha ?? 1;
+      context.fillStyle = color;
+      skinRoundRectPath(context, px, py, s, s, radius);
+      context.fill();
+      // Soft top gloss.
+      context.fillStyle = 'rgba(255,255,255,0.5)';
+      const gloss = Math.max(2, Math.round(s * 0.3));
+      skinRoundRectPath(context, px + 3, py + 3, s - 6, gloss, Math.max(2, radius - 2));
+      context.fill();
+      context.globalAlpha = 1;
+    },
+  },
+  pixel: {
+    label: 'Píxel',
+    colors: [
+      null,
+      '#2fbfbf', // I
+      '#e0bc1f', // O
+      '#9c3fc0', // T
+      '#3fae3f', // S
+      '#cf2f2f', // Z
+      '#3f6fcf', // J
+      '#df801f', // L
+      '#df3f8f', // +
+      '#1f9f8f', // U
+      '#4f4fbf', // Y
+      '#f0f0f0', // single
+      '#8a6a50', // hollow 3x3
+    ],
+    drawBlock(context, x, y, colorIndex, size, alpha) {
+      const color = SKINS.pixel.colors[colorIndex];
+      const px = x * size;
+      const py = y * size;
+      const cell = size / 6;
+      context.globalAlpha = alpha ?? 1;
+      context.fillStyle = color;
+      context.fillRect(px, py, size, size);
+      context.fillStyle = 'rgba(255,255,255,0.38)';
+      for (const [cx, cy] of SKIN_PIXEL_LIGHT) context.fillRect(px + cx * cell, py + cy * cell, cell, cell);
+      context.fillStyle = 'rgba(0,0,0,0.38)';
+      for (const [cx, cy] of SKIN_PIXEL_DARK) context.fillRect(px + cx * cell, py + cy * cell, cell, cell);
+      context.strokeStyle = 'rgba(0,0,0,0.55)';
+      context.lineWidth = 1;
+      context.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
+      context.globalAlpha = 1;
+    },
+  },
+};
+
+// localStorage throws in private mode and on quota errors; never let that break the game.
+function readSkinPref() {
+  try {
+    return localStorage.getItem(SKIN_KEY);
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeSkinPref(name) {
+  try {
+    localStorage.setItem(SKIN_KEY, name);
+  } catch (e) {
+    // Preference simply will not persist.
+  }
+}
+
+function applySkin(name) {
+  // Own-property check: a stale/garbage stored value must not resolve through Object.prototype.
+  activeSkin = Object.prototype.hasOwnProperty.call(SKINS, name) ? name : DEFAULT_SKIN;
+  // Board background and grid color per skin come from CSS on <body>.
+  for (const key of Object.keys(SKINS)) {
+    document.body.classList.toggle(`skin-${key}`, key === activeSkin);
+  }
+  for (const btn of skinButtons) {
+    const selected = btn.dataset.skin === activeSkin;
+    btn.classList.toggle('skin-option-active', selected);
+    btn.setAttribute('aria-pressed', String(selected));
+  }
+}
+
+function initSkin() {
+  applySkin(readSkinPref() || DEFAULT_SKIN);
+}
+
+for (const btn of skinButtons) {
+  btn.addEventListener('click', () => {
+    // Blur so the button never swallows Space/Enter meant for the game.
+    btn.blur();
+    if (btn.dataset.skin === activeSkin) return;
+    applySkin(btn.dataset.skin);
+    writeSkinPref(activeSkin);
+    if (current) draw();
+    if (next && !gameOver) drawNext();
+  });
+}
+
+initSkin();
 initTheme();
 init();
