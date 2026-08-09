@@ -13,6 +13,7 @@ Implementación del clásico **Tetris** en JavaScript vanilla, usando HTML5 Canv
 - [Tetris](#tetris)
   - [Tabla de contenidos](#tabla-de-contenidos)
   - [Qué hace el proyecto](#qué-hace-el-proyecto)
+  - [Piezas especiales](#piezas-especiales)
   - [Cómo ejecutar el juego](#cómo-ejecutar-el-juego)
     - [Opción 1: abrir el archivo directamente](#opción-1-abrir-el-archivo-directamente)
     - [Opción 2: servidor local (recomendado)](#opción-2-servidor-local-recomendado)
@@ -35,6 +36,7 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 
 - Tablero de **10 × 20** celdas.
 - Las **7 piezas estándar** (I, O, T, S, Z, J, L) con colores diferenciados.
+- **5 piezas especiales** no estándar que aparecen ocasionalmente (ver [Piezas especiales](#piezas-especiales)).
 - **Rotación** con _wall kicks_ básicos (pequeños desplazamientos para que la pieza pueda rotar pegada a la pared).
 - **Soft drop** (bajada acelerada) y **hard drop** (caída instantánea).
 - **Pieza fantasma** (_ghost piece_): muestra dónde aterrizará la pieza actual.
@@ -42,6 +44,26 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Sistema de puntuación** clásico de Tetris (100 / 300 / 500 / 800 multiplicado por nivel).
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
 - **Pausa** y **Game Over** con opción de reinicio.
+
+---
+
+## Piezas especiales
+
+Además de las 7 piezas clásicas, el juego incluye 5 piezas no estándar:
+
+| Pieza          | Bloques | Forma                                   | Cuándo aparece                              |
+| -------------- | ------- | --------------------------------------- | ------------------------------------------- |
+| **+** (rosa)   | 5       | `.#.` / `###` / `.#.`                   | Pool de especiales                          |
+| **U** (turquesa) | 5     | `#.#` / `###`                           | Pool de especiales                          |
+| **Y** (índigo) | 5       | `..#.` / `.##.` / `..#.` / `..#.`       | Pool de especiales                          |
+| **3×3 hueca** (marrón) | 8 | `###` / `#.#` / `###`                   | Pool de especiales                          |
+| **1×1** (blanca) | 1     | `#`                                     | **Recompensa** tras eliminar 4 líneas       |
+
+- Cada vez que se genera una pieza hay un **8 %** de probabilidad de que salga una del pool de especiales (`+`, `U`, `Y` o hueca), desde el nivel 1.
+- El bloque **1×1** no entra en el sorteo: se otorga como recompensa al hacer un **Tetris** (4 líneas de golpe). Se entrega como la _siguiente_ pieza, así que aparece primero en la vista previa.
+- La **3×3 hueca** deja un agujero en el centro que solo puede rellenarse con piezas posteriores: es la pieza más difícil del juego.
+
+Los pentominós de 5 bloques rompen a propósito la aritmética del Tetris clásico, donde toda pieza ocupa exactamente 4 celdas.
 
 ---
 
@@ -108,8 +130,9 @@ Aporta el aspecto visual con estética _dark / retro arcade_: fondo oscuro, tipo
 
 Contiene toda la lógica del juego. A grandes rasgos:
 
-- **Modelo del tablero**: una matriz `ROWS × COLS` donde cada celda guarda `0` (vacía) o un índice de color (1–7) que identifica la pieza.
+- **Modelo del tablero**: una matriz `ROWS × COLS` donde cada celda guarda `0` (vacía) o un índice de color (1–12) que identifica la pieza.
 - **Piezas**: definidas como matrices cuadradas. Para rotar se calcula la transposición + reverso de filas (`rotateCW`).
+- **Generación de piezas** (`pickType`): si hay una recompensa pendiente devuelve el bloque 1×1; si no, sortea una especial con probabilidad `SPECIAL_CHANCE` y en caso contrario una de las 7 estándar.
 - **Detección de colisiones** (`collide`): comprueba que ninguna celda de la pieza salga del tablero ni se solape con bloques ya fijados.
 - **Wall kicks** (`tryRotate`): si la rotación choca, intenta desplazar la pieza ±1 y ±2 columnas antes de descartar el giro.
 - **Game loop** (`loop`): basado en `requestAnimationFrame`, acumula el tiempo transcurrido y baja la pieza una fila cuando se supera `dropInterval`.
@@ -173,9 +196,11 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `COLS`         | Columnas del tablero                     | `10`                  |
 | `ROWS`         | Filas del tablero                        | `20`                  |
 | `BLOCK`        | Tamaño en píxeles de cada celda          | `30`                  |
-| `COLORS`       | Paleta de colores por tipo de pieza      | 7 colores             |
+| `COLORS`       | Paleta de colores por tipo de pieza      | 12 colores            |
 | `LINE_SCORES`  | Puntos por 1, 2, 3 o 4 líneas eliminadas | `[0,100,300,500,800]` |
 | `dropInterval` | Velocidad inicial de caída en ms         | `1000`                |
+| `SPECIAL_CHANCE` | Probabilidad de que salga una pieza especial | `0.08`          |
+| `SPECIAL_TYPES` | Tipos que entran en el sorteo de especiales | `[8, 9, 10, 12]`   |
 
 > Si cambias `COLS`, `ROWS` o `BLOCK`, recuerda ajustar también `width` y `height` del `<canvas id="board">` en `index.html` para que coincida (`COLS × BLOCK` × `ROWS × BLOCK`).
 

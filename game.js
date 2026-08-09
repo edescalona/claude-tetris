@@ -13,6 +13,11 @@ const COLORS = [
   '#e57373', // Z - red
   '#90caf9', // J - pale blue
   '#ffb74d', // L - orange
+  '#f06292', // + pentomino - pink
+  '#4db6ac', // U pentomino - teal
+  '#7986cb', // Y pentomino - indigo
+  '#ffffff', // single - white (reward piece)
+  '#a1887f', // hollow 3x3 - brown
 ];
 
 const PIECES = [
@@ -24,9 +29,19 @@ const PIECES = [
   [[5,5,0],[0,5,5],[0,0,0]],                  // Z
   [[6,0,0],[6,6,6],[0,0,0]],                  // J
   [[0,0,7],[7,7,7],[0,0,0]],                  // L
+  [[0,8,0],[8,8,8],[0,8,0]],                  // + pentomino
+  [[0,0,0],[9,0,9],[9,9,9]],                  // U pentomino
+  [[0,0,10,0],[0,10,10,0],[0,0,10,0],[0,0,10,0]], // Y pentomino
+  [[11]],                                     // single
+  [[12,12,12],[12,0,12],[12,12,12]],          // hollow 3x3
 ];
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
+
+const STANDARD_TYPES = 7;
+const SPECIAL_TYPES = [8, 9, 10, 12]; // +, U, Y, hollow — the single is reward-only
+const SINGLE_TYPE = 11;
+const SPECIAL_CHANCE = 0.08;
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -43,7 +58,7 @@ const themeToggleBtn = document.getElementById('theme-toggle-btn');
 const themeIcon = themeToggleBtn.querySelector('.theme-icon');
 const themeLabel = themeToggleBtn.querySelector('.theme-label');
 
-let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, rewardPending;
 
 const THEME_KEY = 'tetris-theme';
 
@@ -67,15 +82,27 @@ themeToggleBtn.addEventListener('click', () => {
   applyTheme(theme);
   localStorage.setItem(THEME_KEY, theme);
   if (current) draw();
-  if (next) drawNext();
+  if (next && !gameOver) drawNext();
 });
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
 }
 
+// Reward pieces take precedence, then the occasional special, otherwise a standard piece.
+function pickType() {
+  if (rewardPending) {
+    rewardPending = false;
+    return SINGLE_TYPE;
+  }
+  if (Math.random() < SPECIAL_CHANCE) {
+    return SPECIAL_TYPES[Math.floor(Math.random() * SPECIAL_TYPES.length)];
+  }
+  return Math.floor(Math.random() * STANDARD_TYPES) + 1;
+}
+
 function randomPiece() {
-  const type = Math.floor(Math.random() * 7) + 1;
+  const type = pickType();
   const shape = PIECES[type].map(row => [...row]);
   return { type, shape, x: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2), y: 0 };
 }
@@ -132,6 +159,8 @@ function clearLines() {
     }
   }
   if (cleared) {
+    // A Tetris grants a 1x1 piece, delivered as the next piece so the player sees it coming.
+    if (cleared === 4) rewardPending = true;
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
     level = Math.floor(lines / 10) + 1;
@@ -174,6 +203,7 @@ function spawn() {
   next = randomPiece();
   if (collide(current.shape, current.x, current.y)) {
     endGame();
+    return;
   }
   drawNext();
 }
@@ -222,6 +252,9 @@ function draw() {
     for (let c = 0; c < COLS; c++)
       drawBlock(ctx, c, r, board[r][c], BLOCK);
 
+  // Freeze the board once the game is over: no ghost, no floating piece.
+  if (gameOver) return;
+
   // ghost
   const gy = ghostY();
   for (let r = 0; r < current.shape.length; r++)
@@ -249,6 +282,7 @@ function drawNext() {
 function endGame() {
   gameOver = true;
   cancelAnimationFrame(animId);
+  nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
@@ -281,6 +315,9 @@ function loop(ts) {
     }
   }
   draw();
+  // lockPiece() may have ended the game from inside this very frame, and
+  // cancelAnimationFrame() cannot stop a frame that is already running.
+  if (gameOver) return;
   animId = requestAnimationFrame(loop);
 }
 
@@ -294,6 +331,7 @@ function init() {
   dropInterval = 1000;
   dropAccum = 0;
   lastTime = performance.now();
+  rewardPending = false;
   next = randomPiece();
   spawn();
   updateHUD();
