@@ -54,7 +54,32 @@
       <div class="overlay-box">
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
+        <div id="hs-gameover-panel" class="hs-panel hs-hidden">
+          <p id="hs-run-summary" class="hs-run-summary"></p>
+          <div id="hs-name-form" class="hs-name-form hs-hidden">
+            <span class="hs-form-label">¡Nuevo record! Escribe tu nombre</span>
+            <div class="hs-form-row">
+              <input id="hs-name-input" class="hs-input" type="text" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Nombre del jugador" />
+              <button type="button" id="hs-save-btn" class="hs-btn">Guardar</button>
+            </div>
+          </div>
+          <div id="hs-gameover-scores" class="hs-scores"></div>
+        </div>
         <button id="restart-btn">Reiniciar</button>
+        <button type="button" id="start-menu-btn" class="hs-btn hs-btn-ghost hs-hidden">Menú</button>
+      </div>
+    </div>
+
+    <div id="start-screen" class="start-screen">
+      <div class="start-box">
+        <p class="start-title">TETRIS</p>
+        <div id="start-scores" class="hs-scores"></div>
+        <div class="start-row">
+          <label class="start-label" for="start-level-select">NIVEL INICIAL</label>
+          <select id="start-level-select" class="start-select"></select>
+        </div>
+        <button type="button" id="start-play-btn" class="start-play">JUGAR</button>
+        <button type="button" id="start-reset-btn" class="hs-btn hs-btn-ghost">Resetear records</button>
       </div>
     </div>
   </div>

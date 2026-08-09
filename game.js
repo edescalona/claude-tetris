@@ -163,10 +163,11 @@ function clearLines() {
     if (cleared === 4) rewardPending = true;
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
-    level = Math.floor(lines / 10) + 1;
+    level = startLevel + Math.floor(lines / 10);
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
     updateHUD();
   }
+  hsTrackCombo(cleared);
 }
 
 function ghostY() {
@@ -286,6 +287,7 @@ function endGame() {
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
+  hsShowGameOver();
 }
 
 function togglePause() {
@@ -325,13 +327,14 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  level = startLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = Math.max(100, 1000 - (level - 1) * 90);
   dropAccum = 0;
   lastTime = performance.now();
   rewardPending = false;
+  hsResetRun();
   next = randomPiece();
   spawn();
   updateHUD();
@@ -341,6 +344,7 @@ function init() {
 }
 
 document.addEventListener('keydown', e => {
+  if (hsKeysBlocked(e)) return;
   if (e.code === 'KeyP') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
@@ -367,5 +371,322 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 
+/* ==========================================================================
+   Local high scores + start screen
+   ========================================================================== */
+
+const HS_KEY = 'tetris-highscores';
+const HS_LEVEL_KEY = 'tetris-start-level';
+const HS_MAX_ENTRIES = 5;
+const HS_NAME_MAX = 12;
+const HS_DEFAULT_NAME = 'Jugador';
+const START_LEVEL_MAX = 15;
+const HS_RESET_TIMEOUT = 4000;
+
+const hsPanel = document.getElementById('hs-gameover-panel');
+const hsRunSummary = document.getElementById('hs-run-summary');
+const hsNameForm = document.getElementById('hs-name-form');
+const hsNameInput = document.getElementById('hs-name-input');
+const hsSaveBtn = document.getElementById('hs-save-btn');
+const hsGameOverScores = document.getElementById('hs-gameover-scores');
+const startScreen = document.getElementById('start-screen');
+const startScores = document.getElementById('start-scores');
+const startLevelSelect = document.getElementById('start-level-select');
+const startPlayBtn = document.getElementById('start-play-btn');
+const startResetBtn = document.getElementById('start-reset-btn');
+const startMenuBtn = document.getElementById('start-menu-btn');
+
+// Combo = streak of consecutive locked pieces that clear at least one line.
+let combo = 0;
+let maxCombo = 0;
+let startLevel = 1;
+// Entry waiting for the player to confirm a name at game over.
+let hsPendingEntry = null;
+let hsResetArmed = false;
+let hsResetTimer = null;
+
+function hsClampLevel(value) {
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(START_LEVEL_MAX, Math.max(1, Math.floor(value)));
+}
+
+function hsReadStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (e) {
+    return null;
+  }
+}
+
+function hsWriteStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    // Storage may be unavailable (private mode, quota); records are optional.
+  }
+}
+
+function hsSanitizeEntry(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const score = Number(raw.score);
+  if (!Number.isFinite(score)) return null;
+  const name = typeof raw.name === 'string' ? raw.name.trim().slice(0, HS_NAME_MAX) : '';
+  const entryLines = Number(raw.lines);
+  const entryCombo = Number(raw.maxCombo);
+  return {
+    name: name || HS_DEFAULT_NAME,
+    score: Math.max(0, Math.floor(score)),
+    lines: Number.isFinite(entryLines) ? Math.max(0, Math.floor(entryLines)) : 0,
+    maxCombo: Number.isFinite(entryCombo) ? Math.max(0, Math.floor(entryCombo)) : 0,
+    date: typeof raw.date === 'string' ? raw.date : '',
+  };
+}
+
+// Never trust what is in localStorage: corrupt or foreign data must not crash the game.
+function hsLoadScores() {
+  const stored = hsReadStorage(HS_KEY);
+  if (!stored) return [];
+  let parsed;
+  try {
+    parsed = JSON.parse(stored);
+  } catch (e) {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .map(hsSanitizeEntry)
+    .filter(entry => entry !== null)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, HS_MAX_ENTRIES);
+}
+
+function hsQualifies(value) {
+  if (!value || value <= 0) return false;
+  const entries = hsLoadScores();
+  if (entries.length < HS_MAX_ENTRIES) return true;
+  return value > entries[entries.length - 1].score;
+}
+
+// Returns the index of the saved entry inside the stored top, or -1 if it did not make it.
+function hsSaveEntry(entry) {
+  const entries = hsLoadScores();
+  entries.push(entry);
+  entries.sort((a, b) => b.score - a.score);
+  const top = entries.slice(0, HS_MAX_ENTRIES);
+  hsWriteStorage(HS_KEY, JSON.stringify(top));
+  return top.indexOf(entry);
+}
+
+function hsFormatDate(iso) {
+  if (!iso) return '';
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('es-ES');
+}
+
+function hsAppendText(parent, tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  el.textContent = text;
+  parent.appendChild(el);
+  return el;
+}
+
+function hsRenderScores(container, highlightIndex) {
+  const entries = hsLoadScores();
+  container.textContent = '';
+  hsAppendText(container, 'p', 'hs-scores-title', 'MEJORES PUNTUACIONES');
+
+  if (!entries.length) {
+    hsAppendText(container, 'p', 'hs-empty', 'Sin records todavía');
+    return;
+  }
+
+  const table = document.createElement('table');
+  table.className = 'hs-table';
+
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  ['#', 'NOMBRE', 'PUNTOS', 'LÍNEAS', 'COMBO'].forEach(text => {
+    hsAppendText(headRow, 'th', '', text);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  entries.forEach((entry, index) => {
+    const row = document.createElement('tr');
+    if (index === highlightIndex) row.className = 'hs-row-highlight';
+    const date = hsFormatDate(entry.date);
+    if (date) row.title = date;
+    hsAppendText(row, 'td', '', String(index + 1));
+    hsAppendText(row, 'td', 'hs-cell-name', entry.name);
+    hsAppendText(row, 'td', '', entry.score.toLocaleString());
+    hsAppendText(row, 'td', '', String(entry.lines));
+    hsAppendText(row, 'td', '', `x${entry.maxCombo}`);
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+  container.appendChild(table);
+
+  const bestCombo = entries.reduce((best, entry) => Math.max(best, entry.maxCombo), 0);
+  const bestLines = entries.reduce((best, entry) => Math.max(best, entry.lines), 0);
+  hsAppendText(container, 'p', 'hs-summary', `Mejor combo: x${bestCombo} · Máx. líneas: ${bestLines}`);
+}
+
+function hsRefreshScores(highlightIndex) {
+  hsRenderScores(hsGameOverScores, highlightIndex);
+  hsRenderScores(startScores, -1);
+}
+
+// Called once per locked piece from clearLines().
+function hsTrackCombo(cleared) {
+  if (cleared > 0) {
+    combo++;
+    if (combo > maxCombo) maxCombo = combo;
+  } else {
+    combo = 0;
+  }
+}
+
+function hsCommitPendingEntry() {
+  if (!hsPendingEntry) return -1;
+  const name = hsNameInput.value.trim().slice(0, HS_NAME_MAX);
+  hsPendingEntry.name = name || HS_DEFAULT_NAME;
+  const index = hsSaveEntry(hsPendingEntry);
+  hsPendingEntry = null;
+  hsNameForm.classList.add('hs-hidden');
+  return index;
+}
+
+// Runs from init(): flushes any unconfirmed entry, then clears the per-game counters.
+function hsResetRun() {
+  hsCommitPendingEntry();
+  hsPanel.classList.add('hs-hidden');
+  hsNameForm.classList.add('hs-hidden');
+  startMenuBtn.classList.add('hs-hidden');
+  combo = 0;
+  maxCombo = 0;
+}
+
+function hsShowGameOver() {
+  hsPendingEntry = null;
+  hsPanel.classList.remove('hs-hidden');
+  startMenuBtn.classList.remove('hs-hidden');
+  hsRunSummary.textContent = `Líneas: ${lines} · Combo máx.: x${maxCombo}`;
+
+  if (hsQualifies(score)) {
+    hsPendingEntry = { name: HS_DEFAULT_NAME, score, lines, maxCombo, date: new Date().toISOString() };
+    hsNameInput.value = HS_DEFAULT_NAME;
+    hsNameForm.classList.remove('hs-hidden');
+    hsRefreshScores(-1);
+    hsNameInput.focus();
+    hsNameInput.select();
+  } else {
+    hsNameForm.classList.add('hs-hidden');
+    hsRefreshScores(-1);
+  }
+}
+
+function hsDisarmReset() {
+  clearTimeout(hsResetTimer);
+  hsResetTimer = null;
+  hsResetArmed = false;
+  startResetBtn.textContent = 'Resetear records';
+  startResetBtn.classList.remove('hs-btn-danger');
+}
+
+function hsLoadStartLevel() {
+  return hsClampLevel(parseInt(hsReadStorage(HS_LEVEL_KEY), 10));
+}
+
+function startFillLevelOptions() {
+  for (let value = 1; value <= START_LEVEL_MAX; value++) {
+    const option = document.createElement('option');
+    option.value = String(value);
+    option.textContent = String(value);
+    startLevelSelect.appendChild(option);
+  }
+}
+
+function startShowScreen() {
+  hsDisarmReset();
+  startLevelSelect.value = String(startLevel);
+  hsRenderScores(startScores, -1);
+  startScreen.classList.remove('hs-hidden');
+}
+
+// Game keys must stay inert while the start screen is up or the player is typing a name.
+function hsKeysBlocked(e) {
+  if (!startScreen.classList.contains('hs-hidden')) return true;
+  const target = e.target;
+  if (!target || !target.tagName) return false;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+}
+
+hsNameInput.addEventListener('keydown', e => {
+  if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+    e.preventDefault();
+    hsRefreshScores(hsCommitPendingEntry());
+  }
+});
+
+hsSaveBtn.addEventListener('click', () => {
+  hsSaveBtn.blur();
+  hsRefreshScores(hsCommitPendingEntry());
+});
+
+startPlayBtn.addEventListener('click', () => {
+  startPlayBtn.blur();
+  startLevel = hsClampLevel(parseInt(startLevelSelect.value, 10));
+  hsWriteStorage(HS_LEVEL_KEY, String(startLevel));
+  startScreen.classList.add('hs-hidden');
+  init();
+});
+
+startLevelSelect.addEventListener('change', () => {
+  startLevel = hsClampLevel(parseInt(startLevelSelect.value, 10));
+  startLevelSelect.value = String(startLevel);
+  hsWriteStorage(HS_LEVEL_KEY, String(startLevel));
+});
+
+// Two-step confirmation: no blocking confirm() dialog.
+startResetBtn.addEventListener('click', () => {
+  startResetBtn.blur();
+  if (!hsResetArmed) {
+    hsResetArmed = true;
+    startResetBtn.textContent = '¿Seguro?';
+    startResetBtn.classList.add('hs-btn-danger');
+    clearTimeout(hsResetTimer);
+    hsResetTimer = setTimeout(hsDisarmReset, HS_RESET_TIMEOUT);
+    return;
+  }
+  hsDisarmReset();
+  try {
+    localStorage.removeItem(HS_KEY);
+  } catch (e) {
+    // Nothing to do: storage is unavailable.
+  }
+  hsRenderScores(startScores, -1);
+});
+
+startMenuBtn.addEventListener('click', () => {
+  startMenuBtn.blur();
+  hsCommitPendingEntry();
+  overlay.classList.add('hidden');
+  hsPanel.classList.add('hs-hidden');
+  startMenuBtn.classList.add('hs-hidden');
+  startShowScreen();
+});
+
+// Keeps Space from re-triggering the focused button while the next game runs.
+restartBtn.addEventListener('click', () => restartBtn.blur());
+
+function startBoot() {
+  startFillLevelOptions();
+  startLevel = hsLoadStartLevel();
+  startShowScreen();
+}
+
 initTheme();
-init();
+startBoot();
