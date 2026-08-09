@@ -418,18 +418,21 @@ function hsReadStorage(key) {
   }
 }
 
+// Returns false when the write was rejected (private mode, quota); records are optional.
 function hsWriteStorage(key, value) {
   try {
     localStorage.setItem(key, value);
+    return true;
   } catch (e) {
-    // Storage may be unavailable (private mode, quota); records are optional.
+    return false;
   }
 }
 
 function hsSanitizeEntry(raw) {
   if (!raw || typeof raw !== 'object') return null;
-  const score = Number(raw.score);
-  if (!Number.isFinite(score)) return null;
+  // Only real, positive scores: coercion would turn {}, null or "" into a bogus 0-point row.
+  const score = typeof raw.score === 'number' ? raw.score : NaN;
+  if (!Number.isFinite(score) || score <= 0) return null;
   const name = typeof raw.name === 'string' ? raw.name.trim().slice(0, HS_NAME_MAX) : '';
   const entryLines = Number(raw.lines);
   const entryCombo = Number(raw.maxCombo);
@@ -473,7 +476,8 @@ function hsSaveEntry(entry) {
   entries.push(entry);
   entries.sort((a, b) => b.score - a.score);
   const top = entries.slice(0, HS_MAX_ENTRIES);
-  hsWriteStorage(HS_KEY, JSON.stringify(top));
+  // Without a successful write the table is re-rendered from storage, so there is nothing to highlight.
+  if (!hsWriteStorage(HS_KEY, JSON.stringify(top))) return -1;
   return top.indexOf(entry);
 }
 
@@ -519,7 +523,11 @@ function hsRenderScores(container, highlightIndex) {
     const date = hsFormatDate(entry.date);
     if (date) row.title = date;
     hsAppendText(row, 'td', '', String(index + 1));
-    hsAppendText(row, 'td', 'hs-cell-name', entry.name);
+    // The name goes in a span: a max-width on the cell alone would not truncate a long name.
+    const nameCell = document.createElement('td');
+    nameCell.className = 'hs-cell-name';
+    hsAppendText(nameCell, 'span', 'hs-cell-name-text', entry.name);
+    row.appendChild(nameCell);
     hsAppendText(row, 'td', '', entry.score.toLocaleString());
     hsAppendText(row, 'td', '', String(entry.lines));
     hsAppendText(row, 'td', '', `x${entry.maxCombo}`);

@@ -324,10 +324,12 @@ kbd {
   text-align: left;
 }
 
-.hs-cell-name {
+.hs-cell-name-text {
+  display: inline-block;
   max-width: 96px;
   overflow: hidden;
   text-overflow: ellipsis;
+  vertical-align: bottom;
 }
 
 .hs-row-highlight td {
