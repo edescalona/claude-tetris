@@ -294,13 +294,12 @@ function togglePause() {
   if (gameOver) return;
   paused = !paused;
   if (!paused) {
+    pauseMenuClose();
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+    pauseMenuOpen();
   }
 }
 
@@ -327,6 +326,7 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
+  startLevel = readStartLevel();
   level = startLevel;
   paused = false;
   gameOver = false;
@@ -339,13 +339,18 @@ function init() {
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  pauseMenuClose();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
   if (hsKeysBlocked(e)) return;
-  if (e.code === 'KeyP') { togglePause(); return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
+  // While the pause menu is open every game key is swallowed, so the page cannot
+  // scroll and a focused menu button cannot be activated with Space. The level
+  // selector is exempt or it would become mouse-only.
+  if (paused && GAME_KEYS.includes(e.code) && e.target !== pauseLevelSelect) e.preventDefault();
   if (paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
@@ -618,7 +623,9 @@ function startFillLevelOptions() {
 
 function startShowScreen() {
   hsDisarmReset();
-  startLevelSelect.value = String(startLevel);
+  // Read storage, not `startLevel`: the pause menu selector writes the preference
+  // without touching the run in progress, so the variable can be one game behind.
+  startLevelSelect.value = String(readStartLevel());
   hsRenderScores(startScores, -1);
   startScreen.classList.remove('hs-hidden');
 }
@@ -695,6 +702,83 @@ function startBoot() {
   startLevel = hsLoadStartLevel();
   startShowScreen();
 }
+
+/* ---- Pause menu ---- */
+
+const START_LEVEL_KEY = 'tetris-start-level';
+const MIN_START_LEVEL = 1;
+const MAX_START_LEVEL = 15;
+
+// Keys that drive the falling piece: blocked while the pause menu is open.
+const GAME_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyX'];
+
+const pauseOverlay = document.getElementById('pause-overlay');
+const pauseResumeBtn = document.getElementById('pause-resume-btn');
+const pauseRestartBtn = document.getElementById('pause-restart-btn');
+const pauseControlsBtn = document.getElementById('pause-controls-btn');
+const pauseControls = document.getElementById('pause-controls');
+const pauseLevelSelect = document.getElementById('pause-level-select');
+
+// `startLevel` is declared with the high score state above. init() re-reads the
+// stored preference into it, so changing either selector mid-game never speeds up
+// or slows down the run already in progress.
+function readStartLevel() {
+  const stored = parseInt(localStorage.getItem(START_LEVEL_KEY), 10);
+  if (!Number.isFinite(stored)) return MIN_START_LEVEL;
+  return Math.min(MAX_START_LEVEL, Math.max(MIN_START_LEVEL, stored));
+}
+
+function pauseSetControlsVisible(visible) {
+  pauseControls.classList.toggle('pause-hidden', !visible);
+  pauseControlsBtn.setAttribute('aria-expanded', String(visible));
+  pauseControlsBtn.textContent = visible ? 'Ocultar controles' : 'Ver controles';
+}
+
+function pauseMenuOpen() {
+  // Re-sync in case the start screen selector changed the preference.
+  pauseLevelSelect.value = String(readStartLevel());
+  pauseOverlay.classList.remove('pause-hidden');
+  pauseResumeBtn.focus();
+}
+
+function pauseMenuClose() {
+  // Drop focus so Enter cannot re-trigger the button that closed the menu.
+  if (pauseOverlay.contains(document.activeElement)) document.activeElement.blur();
+  pauseOverlay.classList.add('pause-hidden');
+  pauseSetControlsVisible(false);
+}
+
+function pauseBuildMenu() {
+  const controlsList = document.querySelector('.controls ul');
+  if (controlsList) pauseControls.appendChild(controlsList.cloneNode(true));
+
+  for (let lvl = MIN_START_LEVEL; lvl <= MAX_START_LEVEL; lvl++) {
+    const option = document.createElement('option');
+    option.value = String(lvl);
+    option.textContent = String(lvl);
+    pauseLevelSelect.appendChild(option);
+  }
+  pauseLevelSelect.value = String(readStartLevel());
+}
+
+pauseResumeBtn.addEventListener('click', () => {
+  if (paused) togglePause();
+});
+
+pauseRestartBtn.addEventListener('click', init);
+
+pauseControlsBtn.addEventListener('click', () => {
+  pauseSetControlsVisible(pauseControls.classList.contains('pause-hidden'));
+});
+
+// Only the stored preference changes here: it lands on the next init().
+pauseLevelSelect.addEventListener('change', () => {
+  const value = Math.min(MAX_START_LEVEL, Math.max(MIN_START_LEVEL, parseInt(pauseLevelSelect.value, 10) || MIN_START_LEVEL));
+  pauseLevelSelect.value = String(value);
+  localStorage.setItem(START_LEVEL_KEY, String(value));
+});
+
+pauseBuildMenu();
 
 initTheme();
 startBoot();

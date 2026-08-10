@@ -44,7 +44,7 @@
             <li><kbd>↑</kbd> rotar</li>
             <li><kbd>↓</kbd> bajar</li>
             <li><kbd>Space</kbd> caída</li>
-            <li><kbd>P</kbd> pausa</li>
+            <li><kbd>P</kbd> <kbd>Esc</kbd> pausa</li>
           </ul>
         </div>
       </aside>
@@ -80,6 +80,24 @@
         </div>
         <button type="button" id="start-play-btn" class="start-play">JUGAR</button>
         <button type="button" id="start-reset-btn" class="hs-btn hs-btn-ghost">Resetear records</button>
+      </div>
+    </div>
+
+    <div id="pause-overlay" class="pause-overlay pause-hidden">
+      <div class="pause-menu" role="dialog" aria-labelledby="pause-title">
+        <p id="pause-title" class="pause-title">PAUSA</p>
+
+        <button type="button" id="pause-resume-btn" class="pause-btn pause-btn-primary">Reanudar</button>
+        <button type="button" id="pause-restart-btn" class="pause-btn">Reiniciar</button>
+        <button type="button" id="pause-controls-btn" class="pause-btn" aria-expanded="false" aria-controls="pause-controls">Ver controles</button>
+
+        <div id="pause-controls" class="pause-controls pause-hidden"></div>
+
+        <div class="pause-field">
+          <label class="pause-field-label" for="pause-level-select">NIVEL INICIAL</label>
+          <select id="pause-level-select" class="pause-select"></select>
+        </div>
+        <p class="pause-note">Se aplica a la próxima partida</p>
       </div>
     </div>
   </div>
