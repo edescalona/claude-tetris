@@ -74,6 +74,46 @@ body {
   right: 0;
 }
 
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.skin-card {
+  padding: 8px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--switch-bg);
+  background: var(--board-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.skin-card:hover {
+  background: var(--switch-hover-bg);
+  border-color: var(--value-color);
+}
+
+.skin-card.active {
+  background: var(--value-color);
+  border-color: var(--value-color);
+  color: var(--restart-color);
+}
+
+/* ---- Skin: Neon ---- */
+body.skin-neon {
+  --board-bg: #000000;
+  --board-border: #1a1a1a;
+  --grid-color: #141414;
+  --board-shadow: rgba(0, 255, 255, 0.15);
+}
+
 .theme-btn {
   display: inline-flex;
   align-items: center;
