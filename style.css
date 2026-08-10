@@ -317,3 +317,123 @@ kbd {
   align-items: center;
   gap: 4px;
 }
+
+#reset-records-btn {
+  background: none;
+  border: none;
+  color: var(--label-color);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+#reset-records-btn:hover {
+  color: var(--overlay-title-color);
+}
+
+/* ---- Records ---- */
+.records-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 220px;
+}
+
+.records-list {
+  list-style: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+}
+
+.records-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 8px;
+  border-radius: 3px;
+  color: var(--text);
+}
+
+.records-list li.empty {
+  justify-content: center;
+  color: var(--label-color);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.records-list li.highlight {
+  background: var(--value-color);
+  color: var(--restart-color);
+  font-weight: 700;
+}
+
+.records-stats {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 11px;
+  color: var(--label-color);
+}
+
+.records-stats strong {
+  color: var(--value-color);
+}
+
+.name-entry {
+  display: flex;
+  gap: 6px;
+}
+
+#name-input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--kbd-border);
+  background: var(--kbd-bg);
+  color: var(--text);
+  width: 120px;
+}
+
+#save-score-btn {
+  background: var(--restart-bg);
+  color: var(--restart-color);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#save-score-btn:hover {
+  background: var(--restart-hover);
+}
+
+#play-btn {
+  margin-top: 8px;
+  background: var(--restart-bg);
+  color: var(--restart-color);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.15s;
+}
+
+#play-btn:hover {
+  background: var(--restart-hover);
+}
+
+/* Placed last so it wins over any earlier same-specificity display rule. */
+.hidden {
+  display: none !important;
+}
