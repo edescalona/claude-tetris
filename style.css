@@ -625,3 +625,78 @@ kbd {
 .start-play:hover {
   background: var(--restart-hover);
 }
+
+/* ---- Skins visuales ---- */
+/* .overlay and .pause-overlay are absolutely positioned over the whole
+   .wrapper, so GAME OVER and PAUSA would swallow clicks on the selector.
+   Lift it above both (.overlay is z-index: auto, .pause-overlay is 2) so the
+   skin stays switchable. It stays below the start screen (50) and the score
+   entry panel (60), which are full takeovers by design. */
+.skin-selector {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.skin-option {
+  padding: 6px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--switch-bg);
+  background: var(--board-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.skin-option:hover {
+  background: var(--switch-hover-bg);
+  border-color: var(--value-color);
+}
+
+.skin-option-active {
+  background: var(--restart-bg);
+  border-color: var(--restart-bg);
+  color: var(--restart-color);
+}
+
+.skin-option-active:hover {
+  background: var(--restart-hover);
+  border-color: var(--restart-hover);
+  color: var(--restart-color);
+}
+
+/* Per-skin board surface. --grid-color is redefined on <body> because drawGrid()
+   reads it from there; the background is scoped to the canvases so the skin does
+   not repaint the panel chrome and fight the light/dark theme. */
+body.skin-neon {
+  --grid-color: #191932;
+}
+
+body.skin-neon #board,
+body.skin-neon #next-canvas {
+  background: #05050c;
+}
+
+body.skin-pastel {
+  --grid-color: #ece2d8;
+}
+
+body.skin-pastel #board,
+body.skin-pastel #next-canvas {
+  background: #fdfaf6;
+}
+
+body.skin-pixel {
+  --grid-color: #2a2a40;
+}
+
+body.skin-pixel #board,
+body.skin-pixel #next-canvas {
+  background: #12121c;
+}
