@@ -52,6 +52,13 @@ body.light-theme {
   --switch-hover-bg: #e9ebf5;
 }
 
+body.skin-neon {
+  --board-bg: #000000;
+  --board-border: #1a1a1a;
+  --grid-color: #0a0a12;
+  --board-shadow: rgba(0, 229, 255, 0.3);
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -69,9 +76,39 @@ body {
 }
 
 .theme-toggle {
-  position: absolute;
-  top: 4px;
-  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.skin-switch {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.skin-swatch {
+  padding: 5px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--kbd-border);
+  background: var(--kbd-bg);
+  color: var(--kbd-color);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.skin-swatch:hover {
+  border-color: var(--value-color);
+}
+
+.skin-swatch.active {
+  border-color: var(--value-color);
+  color: var(--value-color);
 }
 
 .theme-btn {
