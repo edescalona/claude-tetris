@@ -17,7 +17,7 @@ There is no build, lint, or test command. Verification is manual: reload the pag
 
 ## Architecture (`game.js`)
 
-Single IIFE-less script under `'use strict'`, all state in module-level `let` bindings (`board`, `current`, `next`, `score`, `lines`, `level`, `paused`, `gameOver`, `dropInterval`, `dropAccum`, `animId`). `init()` resets every one of them and is also the restart handler — any new state variable must be reset there or it leaks across games.
+Single IIFE-less script under `'use strict'`, all state in module-level `let` bindings (`board`, `current`, `next`, `score`, `lines`, `level`, `paused`, `gameOver`, `dropInterval`, `dropAccum`, `animId`). `init()` resets every one of them and is also the restart handler — any new state variable must be reset there or it leaks across games. Exception: `startLevel` is a menu setting (picked in the pause menu, applied on the *next* restart), not per-game state — `init()` reads it but must not reset it.
 
 Data model:
 - `board` is `ROWS × COLS` of ints: `0` = empty, `1..12` = piece type, which is also the index into `COLORS` and `PIECES`. These three arrays are index-aligned and each starts with a `null` placeholder at index 0. Adding a piece means appending to both `PIECES` and `COLORS` in the same position. `1..7` are the standard tetrominoes; `8..12` are the specials (`+`, `U`, `Y`, single, hollow 3×3) selected by `pickType`, which also consumes the `rewardPending` flag set by `clearLines` on a Tetris.
@@ -25,10 +25,11 @@ Data model:
 
 Loop and rendering:
 - `loop(ts)` is a `requestAnimationFrame` accumulator: adds `dt` to `dropAccum`, drops one row when `dropAccum >= dropInterval`, then `draw()`s the full frame (grid, board, ghost, current piece). Everything redraws every frame; there is no dirty-region logic.
-- Pause stops the loop with `cancelAnimationFrame(animId)` — it is triggered from a keydown, outside the frame, so `animId` is a pending handle there; `togglePause` restarts it and must reset `lastTime` first or the first frame after resume gets a huge `dt`. Game over cannot rely on that alone: `endGame` is often reached from *inside* the running frame (`loop` → `lockPiece` → `spawn`), where `animId` is the current frame and cancelling it is a no-op — so `loop` also checks `gameOver` before scheduling the next frame, and `draw` returns early on `gameOver` to freeze the board without ghost or falling piece.
+- Pause stops the loop with `cancelAnimationFrame(animId)` — it is triggered from a keydown, outside the frame, so `animId` is a pending handle there; `openPauseMenu`/`closePauseMenu` restart it and must reset `lastTime` first or the first frame after resume gets a huge `dt`. Game over cannot rely on that alone: `endGame` is often reached from *inside* the running frame (`loop` → `lockPiece` → `spawn`), where `animId` is the current frame and cancelling it is a no-op — so `loop` also checks `gameOver` before scheduling the next frame, and `draw` returns early on `gameOver` to freeze the board without ghost or falling piece.
 - The HUD is DOM, not canvas: `updateHUD()` writes to `#score`/`#lines`/`#level`. Any code that changes `score`, `lines`, or `level` outside the keydown handler must call `updateHUD()` itself (`clearLines` and `softDrop` do; `hardDrop` relies on the keydown handler's trailing call).
+- `P` and `Escape` both call `togglePause`, which opens/closes the pause overlay (`#pause-overlay`, separate from the game-over `#overlay`) and toggles the `paused` flag; the keydown handler's early `if (paused || gameOver) return` is what blocks board inputs while the menu is open, so no separate input-lock is needed. The pause overlay has two swappable views (`#pause-menu-view`, `#pause-controls-view`) toggled by class, not two overlays — `showPauseMenuView`/`showPauseControlsView` switch between them without touching `paused`.
 
-Progression: `level = floor(lines / 10) + 1`, `dropInterval = max(100, 1000 - (level - 1) * 90)`, line score `LINE_SCORES[cleared] * level`, hard drop `+2`/cell, soft drop `+1`/row.
+Progression: `level = startLevel + floor(lines / 10)`, `dropInterval = max(100, 1000 - (level - 1) * 90)`, line score `LINE_SCORES[cleared] * level`, hard drop `+2`/cell, soft drop `+1`/row. `startLevel` (default `1`) is set via the pause menu's level `<select>` and takes effect on the next `init()` call (restart), not the running game.
 
 ## Cross-file coupling
 

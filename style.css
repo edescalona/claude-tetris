@@ -226,7 +226,7 @@ kbd {
   color: var(--value-color);
 }
 
-#restart-btn {
+.menu-btn {
   margin-top: 8px;
   background: var(--restart-bg);
   color: var(--restart-color);
@@ -240,6 +240,73 @@ kbd {
   transition: background 0.15s;
 }
 
-#restart-btn:hover {
+.menu-btn:hover {
   background: var(--restart-hover);
+}
+
+/* ---- Menú de pausa ---- */
+.hidden {
+  display: none;
+}
+
+.pause-box {
+  min-width: 220px;
+}
+
+.overlay-heading {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--overlay-title-color);
+  margin-bottom: 4px;
+}
+
+#pause-menu-view:not(.hidden),
+#pause-controls-view:not(.hidden) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.level-select-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.level-select-row label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--label-color);
+  font-weight: 600;
+}
+
+#start-level-select {
+  background: var(--kbd-bg);
+  border: 1px solid var(--kbd-border);
+  color: var(--kbd-color);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.pause-controls-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.pause-controls-list li {
+  font-size: 12px;
+  color: var(--controls-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
