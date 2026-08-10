@@ -245,7 +245,12 @@ kbd {
 }
 
 /* ---- Skins visuales ---- */
+/* .overlay is absolutely positioned over the whole .wrapper, so PAUSA and
+   GAME OVER would swallow clicks on the selector. Lift it into a higher
+   stacking layer (.overlay has z-index: auto) so the skin stays switchable. */
 .skin-selector {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
