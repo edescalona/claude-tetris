@@ -163,6 +163,129 @@ body {
   border-radius: 4px;
 }
 
+/* ---- Records ---- */
+.highscore-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.highscore-entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--controls-color);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.highscore-entry.highlight {
+  background: var(--switch-bg);
+  color: var(--value-color);
+  font-weight: 700;
+}
+
+.hs-rank {
+  color: var(--label-color);
+  width: 14px;
+}
+
+.hs-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hs-score {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.highscore-empty {
+  font-size: 11px;
+  color: var(--label-color);
+}
+
+.best-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--controls-color);
+}
+
+.reset-btn {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--switch-bg);
+  color: var(--controls-color);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.reset-btn:hover {
+  background: var(--switch-hover-bg);
+  border-color: var(--value-color);
+}
+
+.overlay-highscores {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 200px;
+}
+
+.new-highscore {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.new-highscore.hidden {
+  display: none;
+}
+
+.new-highscore-msg {
+  font-size: 12px;
+  color: var(--value-color);
+}
+
+#player-name-input {
+  width: 160px;
+  background: var(--kbd-bg);
+  border: 1px solid var(--kbd-border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  text-align: center;
+  font-family: inherit;
+}
+
+#save-score-btn {
+  background: var(--restart-bg);
+  color: var(--restart-color);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.15s;
+}
+
+#save-score-btn:hover {
+  background: var(--restart-hover);
+}
+
 /* ---- Controles ---- */
 .controls ul {
   list-style: none;
