@@ -57,8 +57,19 @@ const restartBtn = document.getElementById('restart-btn');
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
 const themeIcon = themeToggleBtn.querySelector('.theme-icon');
 const themeLabel = themeToggleBtn.querySelector('.theme-label');
+const pauseOverlay = document.getElementById('pause-overlay');
+const pauseMenuView = document.getElementById('pause-menu-view');
+const pauseControlsView = document.getElementById('pause-controls-view');
+const resumeBtn = document.getElementById('resume-btn');
+const pauseRestartBtn = document.getElementById('pause-restart-btn');
+const viewControlsBtn = document.getElementById('view-controls-btn');
+const backToPauseMenuBtn = document.getElementById('back-to-pause-menu-btn');
+const startLevelSelect = document.getElementById('start-level-select');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, rewardPending;
+
+// Menu setting, not per-game state: survives across restarts, so init() must not reset it.
+let startLevel = 1;
 
 const THEME_KEY = 'tetris-theme';
 
@@ -163,7 +174,7 @@ function clearLines() {
     if (cleared === 4) rewardPending = true;
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
-    level = Math.floor(lines / 10) + 1;
+    level = startLevel + Math.floor(lines / 10);
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
     updateHUD();
   }
@@ -288,17 +299,37 @@ function endGame() {
   overlay.classList.remove('hidden');
 }
 
+function showPauseMenuView() {
+  pauseMenuView.classList.remove('hidden');
+  pauseControlsView.classList.add('hidden');
+}
+
+function showPauseControlsView() {
+  pauseMenuView.classList.add('hidden');
+  pauseControlsView.classList.remove('hidden');
+}
+
+function openPauseMenu() {
+  paused = true;
+  cancelAnimationFrame(animId);
+  showPauseMenuView();
+  startLevelSelect.value = String(startLevel);
+  pauseOverlay.classList.remove('hidden');
+}
+
+function closePauseMenu() {
+  paused = false;
+  pauseOverlay.classList.add('hidden');
+  lastTime = performance.now();
+  loop(lastTime);
+}
+
 function togglePause() {
   if (gameOver) return;
-  paused = !paused;
-  if (!paused) {
-    lastTime = performance.now();
-    loop(lastTime);
+  if (paused) {
+    closePauseMenu();
   } else {
-    cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+    openPauseMenu();
   }
 }
 
@@ -325,10 +356,10 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  level = startLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = Math.max(100, 1000 - (startLevel - 1) * 90);
   dropAccum = 0;
   lastTime = performance.now();
   rewardPending = false;
@@ -336,12 +367,22 @@ function init() {
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  pauseOverlay.classList.add('hidden');
+  showPauseMenuView();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
+resumeBtn.addEventListener('click', closePauseMenu);
+pauseRestartBtn.addEventListener('click', init);
+viewControlsBtn.addEventListener('click', showPauseControlsView);
+backToPauseMenuBtn.addEventListener('click', showPauseMenuView);
+startLevelSelect.addEventListener('change', e => {
+  startLevel = parseInt(e.target.value, 10);
+});
+
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
